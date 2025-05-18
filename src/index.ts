@@ -11,7 +11,7 @@ const port: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
-interface Product {
+export interface Product {
   id: string;
   name: string;
   description: string;
@@ -23,7 +23,7 @@ interface Product {
 }
 
 // Sample data for products
-const sampleProducts: Product[] = [
+export let sampleProducts: Product[] = [
   {
     id: uuidv4(),
     name: "Laptop Pro 15 inch",
@@ -76,7 +76,7 @@ const sampleProducts: Product[] = [
   },
 ];
 
-let products: Product[] = [...sampleProducts]; // Array to store products in memory
+export let products: Product[] = [...sampleProducts]; // Array to store products in memory
 
 // Root endpoint
 app.get("/", (req: Request, res: Response) => {
@@ -84,8 +84,9 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // Handler for creating a new product (POST /products)
-const createProductHandler: RequestHandler = (req, res) => {
+export const createProductHandler: RequestHandler = (req, res) => {
   try {
+    console.log("TEST DEBUG - req.body:", req.body); //
     const { name, description, price, stockQuantity, category } = req.body;
 
     if (
@@ -129,7 +130,7 @@ const createProductHandler: RequestHandler = (req, res) => {
 };
 
 // Handler for listing products (GET /products)
-const listProductsHandler: RequestHandler = (req, res) => {
+export const listProductsHandler: RequestHandler = (req, res) => {
   try {
     const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
     const limit = req.query.limit
@@ -169,15 +170,17 @@ const listProductsHandler: RequestHandler = (req, res) => {
 };
 
 // Handler for getting a product by ID (GET /products/:id)
-const getProductByIdHandler: RequestHandler = (req, res) => {
+export const getProductByIdHandler: RequestHandler = (req, res) => {
   try {
     const { id } = req.params;
     const product = products.find((p) => p.id === id);
 
     if (product) {
       res.status(200).json(product);
+      return; // Exit after sending response
     } else {
       res.status(404).json({ message: `Product with id '${id}' not found.` });
+      return; // Exit after sending response
     }
 
     res.status(200).json(product);
@@ -188,7 +191,7 @@ const getProductByIdHandler: RequestHandler = (req, res) => {
 };
 
 // Handler for updating an existing product (PUT /products/:id)
-const updateProductHandler: RequestHandler = (req, res) => {
+export const updateProductHandler: RequestHandler = (req, res) => {
   try {
     const productId = req.params.id;
     const { name, description, price, stockQuantity, category } = req.body;
@@ -248,7 +251,7 @@ const updateProductHandler: RequestHandler = (req, res) => {
 };
 
 // Handler for deleting a product by ID (DELETE /products/:id)
-const deleteProductHandler: RequestHandler = (req, res) => {
+export const deleteProductHandler: RequestHandler = (req, res) => {
   try {
     const productId = req.params.id;
 
@@ -283,6 +286,10 @@ app.put("/products/:id", updateProductHandler);
 
 app.delete("/products/:id", deleteProductHandler);
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+if (process.env.NODE_ENV !== "test") {
+  app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+  });
+}
+
+export default app; // Export the app for testing purposes
