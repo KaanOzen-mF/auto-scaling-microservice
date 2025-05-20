@@ -179,8 +179,6 @@ export const getProductByIdHandler: RequestHandler = (req, res) => {
       res.status(404).json({ message: `Product with id '${id}' not found.` });
       return; // Exit after sending response
     }
-
-    res.status(200).json(product);
   } catch (error) {
     console.error("Error fetching product by ID:", error);
     res.status(500).json({ message: "Server error: Could not fetch product." });
