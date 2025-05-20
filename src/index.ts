@@ -86,7 +86,6 @@ app.get("/", (req: Request, res: Response) => {
 // Handler for creating a new product (POST /products)
 export const createProductHandler: RequestHandler = (req, res) => {
   try {
-    console.log("TEST DEBUG - req.body:", req.body); //
     const { name, description, price, stockQuantity, category } = req.body;
 
     if (
@@ -121,10 +120,8 @@ export const createProductHandler: RequestHandler = (req, res) => {
     };
 
     products.push(newProduct);
-    console.log("New product added:", newProduct);
     res.status(201).json(newProduct);
   } catch (error) {
-    console.error("Error adding product:", error);
     res.status(500).json({ message: "Server error: Could not add product." });
   }
 };
@@ -235,7 +232,6 @@ export const updateProductHandler: RequestHandler = (req, res) => {
       // Replace the old product with the updated product in the array
       products[productIndex] = updatedProduct;
 
-      console.log("Product updated:", updatedProduct);
       res.status(200).json(updatedProduct);
     } else {
       res.status(404).json({
@@ -261,7 +257,6 @@ export const deleteProductHandler: RequestHandler = (req, res) => {
     if (productIndex !== -1) {
       // Product found, remove it from the array
       const deletedProduct = products.splice(productIndex, 1); // splice returns an array of deleted items
-      console.log("Product deleted:", deletedProduct[0]);
       res.status(204).send(); // 204 No Content for successful deletion
       // .send() is used as .json() is not appropriate for 204
     } else {
