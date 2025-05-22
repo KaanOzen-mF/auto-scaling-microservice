@@ -172,7 +172,7 @@ export const listProductsHandler: RequestHandler = (req, res) => {
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
 
-    const results = products.slice(startIndex, endIndex);
+    const results = products.slice(startIndex, endIndex).map((p) => ({ ...p }));
     const totalItems = products.length;
     const totalPages = Math.ceil(totalItems / limit);
 
