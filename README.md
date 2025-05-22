@@ -1,1 +1,0 @@
-# auto-scaling-microservice
