@@ -17,6 +17,8 @@ export interface Product {
   id: string;
   name: string;
   description: string;
+  detailedDescription?: string; // Optional field
+  imageUrl: string;
   price: number;
   stockQuantity: number;
   category: string;
@@ -30,6 +32,10 @@ export let sampleProducts: Product[] = [
     id: uuidv4(),
     name: "Laptop Pro 15 inch",
     description: "High performance laptop for professionals.",
+    detailedDescription:
+      "This 15-inch Laptop Pro features the latest generation processor, a stunning Retina display, and all-day battery life. Perfect for creative professionals and developers.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     price: 1499.99,
     stockQuantity: 25,
     category: "Electronics",
@@ -40,6 +46,8 @@ export let sampleProducts: Product[] = [
     id: uuidv4(),
     name: "Wireless Mouse Ergo",
     description: "Ergonomic wireless mouse with long battery life.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1527814050087-3793815479db?q=80&w=1928&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     price: 39.99,
     stockQuantity: 150,
     category: "Accessories",
@@ -50,6 +58,8 @@ export let sampleProducts: Product[] = [
     id: uuidv4(),
     name: "Mechanical Keyboard RGB",
     description: "RGB backlit mechanical keyboard with blue switches.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1651168251177-32b5138220dc?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     price: 89.9,
     stockQuantity: 75,
     category: "Peripherals",
@@ -60,6 +70,8 @@ export let sampleProducts: Product[] = [
     id: uuidv4(),
     name: "4K UHD Monitor 27 inch",
     description: "27 inch 4K UHD monitor with vibrant colors.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1576935429524-1df7fb127097?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     price: 349.5,
     stockQuantity: 40,
     category: "Monitors",
@@ -70,6 +82,8 @@ export let sampleProducts: Product[] = [
     id: uuidv4(),
     name: "USB-C Hub 7-in-1",
     description: "Versatile USB-C hub with multiple ports.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1548544027-1a96c4c24c7a?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     price: 29.99,
     stockQuantity: 200,
     category: "Accessories",
@@ -88,18 +102,27 @@ app.get("/", (req: Request, res: Response) => {
 // Handler for creating a new product (POST /products)
 export const createProductHandler: RequestHandler = (req, res) => {
   try {
-    const { name, description, price, stockQuantity, category } = req.body;
+    const {
+      name,
+      description,
+      detailedDescription,
+      price,
+      stockQuantity,
+      category,
+      imageUrl,
+    } = req.body;
 
     if (
       !name ||
       !description ||
       price === undefined ||
       stockQuantity === undefined ||
-      !category
+      !category ||
+      !imageUrl
     ) {
       res.status(400).json({
         message:
-          "Please provide all required fields: name, description, price, stockQuantity, category",
+          "Please provide all required fields: name, description, price, stockQuantity, category, imageUrl",
       });
       return; // Exit after sending response
     }
@@ -114,9 +137,11 @@ export const createProductHandler: RequestHandler = (req, res) => {
       id: uuidv4(),
       name,
       description,
+      detailedDescription,
       price,
       stockQuantity,
       category,
+      imageUrl,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -191,7 +216,15 @@ export const getProductByIdHandler: RequestHandler = (req, res) => {
 export const updateProductHandler: RequestHandler = (req, res) => {
   try {
     const productId = req.params.id;
-    const { name, description, price, stockQuantity, category } = req.body;
+    const {
+      name,
+      description,
+      price,
+      stockQuantity,
+      category,
+      detailedDescription,
+      imageUrl,
+    } = req.body;
 
     // Basic validation for request body
     if (
@@ -199,14 +232,16 @@ export const updateProductHandler: RequestHandler = (req, res) => {
       !description ||
       price === undefined ||
       stockQuantity === undefined ||
-      !category
+      !category ||
+      !imageUrl
     ) {
       res.status(400).json({
         message:
-          "Please provide all required fields for update: name, description, price, stockQuantity, category",
+          "Please provide all required fields for update: name, description, price, stockQuantity, category, imageUrl", // imageUrl eklendi
       });
-      return; // Exit after sending response
+      return;
     }
+
     if (typeof price !== "number" || typeof stockQuantity !== "number") {
       res
         .status(400)
@@ -223,6 +258,8 @@ export const updateProductHandler: RequestHandler = (req, res) => {
         ...products[productIndex], // Preserve original id and createdAt
         name: name,
         description: description,
+        detailedDescription: detailedDescription,
+        imageUrl: imageUrl,
         price: price,
         stockQuantity: stockQuantity,
         category: category,
