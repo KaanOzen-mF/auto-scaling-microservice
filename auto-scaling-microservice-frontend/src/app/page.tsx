@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface Product {
@@ -31,8 +32,10 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  const PRODUCT_SERVICE_API_URL = "http://127.0.0.1:58951/products";
+  const PRODUCT_SERVICE_API_URL = "http://127.0.0.1:51493/products";
 
   useEffect(() => {
     async function fetchProducts() {
@@ -62,6 +65,54 @@ export default function Home() {
     }
     fetchProducts();
   }, [PRODUCT_SERVICE_API_URL]);
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (
+      !window.confirm(
+        `"${productId}" ID's product will be deleted. Are you sure?`
+      )
+    ) {
+      return;
+    }
+
+    setActionMessage(null);
+    setError(null);
+
+    if (!PRODUCT_SERVICE_API_URL.includes(":")) {
+      setError("Product Service API URL is not valid.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${PRODUCT_SERVICE_API_URL}/${productId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(
+            `Product can not find (ID: ${productId}). Not deleted.`
+          );
+        }
+        throw new Error(`Delete is failed ${response.status}`);
+      }
+
+      if (response.status === 204) {
+        setProducts((prevProducts) =>
+          prevProducts.filter((p) => p.id !== productId)
+        );
+        setActionMessage(`Product (ID: ${productId}) deleted successfully.`);
+      } else {
+        setActionMessage(`Unexpected status ${response.status}`);
+      }
+    } catch (err: unknown) {
+      console.error("Error occurred when adding new product", err);
+      setError(
+        err instanceof Error ? err.message : "Product can not be deleted."
+      );
+    }
+  };
+
   return (
     <main className="container mx-auto p-4">
       <h1 className="text-3xl font-bold text-center mb-8 text-blue-600">
@@ -128,8 +179,28 @@ export default function Home() {
                   Stock: {product.stockQuantity}
                 </p>
               </div>
+              <div className="flex space-x-2">
+                <Link
+                  href={`/products/${product.id}`}
+                  className="flex-1 text-center text-sm text-white bg-green-500 hover:bg-green-600 py-1 px-3 rounded transition-colors duration-200"
+                >
+                  Edit
+                </Link>
+                <button
+                  onClick={() => handleDeleteProduct(product.id)}
+                  className="flex-1 text-sm text-white bg-red-500 hover:bg-red-600 py-1 px-3 rounded transition-colors duration-200"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
+          <Link
+            href="/products/new"
+            className="mb-4 inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            + Add New Product
+          </Link>
         </div>
       )}
     </main>
