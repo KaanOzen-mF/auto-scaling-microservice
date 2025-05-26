@@ -35,7 +35,7 @@ export default function Home() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  const PRODUCT_SERVICE_API_URL = "http://127.0.0.1:51493/products";
+  const PRODUCT_SERVICE_API_URL = "http://127.0.0.1:51674/products";
 
   useEffect(() => {
     async function fetchProducts() {
@@ -54,7 +54,7 @@ export default function Home() {
         setProducts(data.data || []);
         setError(null);
       } catch (err: unknown) {
-        console.error("When getting products error occured:", err);
+        console.error("When getting products error occurred:", err);
         setError(
           err instanceof Error ? err.message : "Products not loading..."
         );
@@ -122,7 +122,7 @@ export default function Home() {
       {loading && (
         <p className="text-center text-gray-500">Products loading..</p>
       )}
-      {error && <p className="text-center text-red-500">Hata: {error}</p>}
+      {error && <p className="text-center text-red-500">Error: {error}</p>}
 
       {!loading && !error && products.length === 0 && (
         <p className="text-center text-gray-700">
@@ -131,18 +131,19 @@ export default function Home() {
       )}
 
       {!loading && !error && products.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-stretch">
           {products.map((product) => (
             <div
               key={product.id}
-              className="border border-gray-200 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
+              className="flex flex-col h-full border border-gray-200 rounded-lg shadow-md shadow-amber-50 overflow-hidden hover:shadow-lg 
+              transition-shadow duration-300 bg-gray-400"
             >
               <Image
                 src={product.imageUrl}
                 alt={product.name}
                 width={300}
                 height={200}
-                className="w-full h-48 object-cover"
+                className="w-full h-48 object-cover shadow"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
                     "https://via.placeholder.com/300x200.png?text=Resim+Yok";
@@ -150,45 +151,45 @@ export default function Home() {
               />
               <div className="p-4">
                 <h2
-                  className="text-xl font-semibold mb-2 truncate"
+                  className="text-2xl font-bold mb-2 truncate text-shadow-sm"
                   title={product.name}
                 >
                   {product.name}
                 </h2>
                 <p
-                  className="text-gray-600 text-sm mb-1 truncate"
+                  className="text-gray-800 flex-grow text-md mb-1 truncate"
                   title={product.description}
                 >
                   {product.description}
                 </p>
                 {product.detailedDescription && (
                   <p
-                    className="text-gray-500 text-xs mb-3 truncate"
+                    className="text-gray-700 text-sm mb-3 truncate"
                     title={product.detailedDescription}
                   >
                     {product.detailedDescription}
                   </p>
                 )}
-                <p className="text-lg font-bold text-blue-500 mb-3">
+                <p className="text-2xl font-bold text-blue-950 mb-3 text-right text-shadow-xs">
                   {product.price} TL
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-sm text-gray-600 text-right">
                   Category: {product.category}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-sm text-gray-600 text-right">
                   Stock: {product.stockQuantity}
                 </p>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 mt-auto px-4 py-4">
                 <Link
                   href={`/products/${product.id}`}
-                  className="flex-1 text-center text-sm text-white bg-green-500 hover:bg-green-600 py-1 px-3 rounded transition-colors duration-200"
+                  className="flex-1 text-center text-md text-white bg-blue-900 hover:bg-blue-700 py-1 px-3 rounded transition-colors duration-200 cursor-pointer shadow"
                 >
                   Edit
                 </Link>
                 <button
                   onClick={() => handleDeleteProduct(product.id)}
-                  className="flex-1 text-sm text-white bg-red-500 hover:bg-red-600 py-1 px-3 rounded transition-colors duration-200"
+                  className="flex-1 text-md text-white bg-red-700 hover:bg-red-500 py-1 px-3 rounded transition-colors duration-200 cursor-pointer shadow"
                 >
                   Delete
                 </button>
@@ -197,7 +198,7 @@ export default function Home() {
           ))}
           <Link
             href="/products/new"
-            className="mb-4 inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            className="justify-self-center self-end bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
           >
             + Add New Product
           </Link>
