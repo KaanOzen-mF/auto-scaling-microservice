@@ -205,7 +205,7 @@ export default function ProductEditPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-6 max-w-2xl mx-auto p-6 shadow-xl rounded_lg border border-gray-200"
+        className="space-y-6 max-w-2xl mx-auto p-6 rounded-lg backdrop-blur-m bg-gray-600"
       >
         <div>
           <label
