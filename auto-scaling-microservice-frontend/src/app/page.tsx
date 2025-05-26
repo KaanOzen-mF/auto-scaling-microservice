@@ -135,7 +135,7 @@ export default function Home() {
           {products.map((product) => (
             <div
               key={product.id}
-              className="flex flex-col h-full border border-gray-200 rounded-lg shadow-md shadow-amber-50 overflow-hidden hover:shadow-lg 
+              className="flex flex-col h-full rounded-lg shadow-md shadow-amber-50 overflow-hidden hover:shadow-lg 
               transition-shadow duration-300 bg-gray-400"
             >
               <Image
