@@ -6,12 +6,52 @@ import express, {
 } from "express";
 import { v4 as uuidv4 } from "uuid";
 import cors from "cors";
+import client from "prom-client";
 
 const app: Application = express();
 const port: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(cors()); // Enable CORS for all routes
 app.use(express.json());
+
+// Prometheus metrics
+// Initialize Prometheus client
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics();
+
+// Create a custom metric for HTTP request counts
+const httpRequestCounter = new client.Counter({
+  name: "http_requests_total",
+  help: "Total number of HTTP requests",
+  labelNames: ["method", "route", "status"],
+});
+
+// HTTP request histogram metric
+const httpRequestDurationHistogram = new client.Histogram({
+  name: "http_request_duration_seconds",
+  help: "Duration of HTTP requests in seconds",
+  labelNames: ["method", "route", "status"],
+  buckets: [0.1, 0.5, 1, 1.5, 2, 5], // Buckets for request duration (seconds)
+});
+
+// Middleware to track request metrics
+app.use((req, res, next) => {
+  const end = httpRequestDurationHistogram.startTimer();
+
+  res.on("finish", () => {
+    const route = req.route ? req.route.path : req.path; // Route'u al
+
+    httpRequestCounter.inc({
+      method: req.method,
+      route: route,
+      status: res.statusCode,
+    });
+
+    end({ method: req.method, route: route });
+  });
+
+  next();
+});
 
 export interface Product {
   id: string;
@@ -93,11 +133,6 @@ export let sampleProducts: Product[] = [
 ];
 
 export let products: Product[] = [...sampleProducts]; // Array to store products in memory
-
-// Root endpoint
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello World! Product Service is running.");
-});
 
 // Handler for creating a new product (POST /products)
 export const createProductHandler: RequestHandler = (req, res) => {
@@ -309,13 +344,31 @@ export const deleteProductHandler: RequestHandler = (req, res) => {
   }
 };
 
+// Root endpoint
+app.get("/", (req: Request, res: Response) => {
+  res.send("Hello World! Product Service is running.");
+});
+
+app.get("/ping", (req, res) => {
+  res.status(200).send("Pong!");
+});
+
+// Endpoint for scraping Prometheus metrics
+app.get("/metrics", async (req, res) => {
+  try {
+    res.set("Content-Type", client.register.contentType);
+    res.end(await client.register.metrics());
+  } catch (error) {
+    console.error("Error occurred when generating metrics:", error);
+    res.status(500).send("Error generating metrics");
+  }
+});
+
 // Assign handlers to routes
 app.post("/products", createProductHandler);
 app.get("/products", listProductsHandler);
-
 app.get("/products/:id", getProductByIdHandler);
 app.put("/products/:id", updateProductHandler);
-
 app.delete("/products/:id", deleteProductHandler);
 
 if (process.env.NODE_ENV !== "test") {
