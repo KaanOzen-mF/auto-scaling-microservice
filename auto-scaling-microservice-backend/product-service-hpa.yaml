@@ -15,4 +15,4 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 50 # Target CPU utilization percentage
+          averageUtilization: 20 # Target CPU utilization percentage
