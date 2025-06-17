@@ -4,55 +4,86 @@ import express, {
   Application,
   RequestHandler,
 } from "express";
+// Import a function to generate unique IDs
 import { v4 as uuidv4 } from "uuid";
+
+// Import the CORS middleware to allow cross-origin requests (e.g., from a frontend).
 import cors from "cors";
+
+// Import the official Prometheus client for Node.js to create and expose custom metrics.
 import client from "prom-client";
 
+// --- Basic Express App Setup ---
+
+// Create an instance of an Express application.
 const app: Application = express();
+
+// Define the port the server will listen on. Use the PORT environment variable if available,
+// otherwise default to 3000.
 const port: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-app.use(cors()); // Enable CORS for all routes
+// Enable the CORS middleware for all incoming requests. This adds the necessary
+// headers to allow a web frontend (running on a different origin) to make API calls.
+app.use(cors());
+
+// Enable the express.json() middleware. This parses incoming requests with JSON payloads
+// (e.g., from POST/PUT requests) and makes the parsed data available on `req.body`.
 app.use(express.json());
 
-// Prometheus metrics
-// Initialize Prometheus client
+// --- Prometheus Metrics Instrumentation ---
+
+// Enable the collection of default metrics provided by prom-client.
+// This includes metrics about CPU usage, memory, event loop lag, etc., for the Node.js process.
 const collectDefaultMetrics = client.collectDefaultMetrics;
 collectDefaultMetrics();
 
-// Create a custom metric for HTTP request counts
+// Create a custom Prometheus Counter metric to track the total number of HTTP requests.
 const httpRequestCounter = new client.Counter({
   name: "http_requests_total",
   help: "Total number of HTTP requests",
-  labelNames: ["method", "route", "status"],
+  // 'labelNames' allow us to slice and dice the metric data by different dimensions.
+  labelNames: ["method", "route", "status"], // Changed 'status' to 'status_code' for clarity
 });
 
-// HTTP request histogram metric
+// Create a custom Prometheus Histogram metric to track the duration of HTTP requests.
+// Histograms are useful for calculating percentiles (e.g., p95, p99 latency).
 const httpRequestDurationHistogram = new client.Histogram({
   name: "http_request_duration_seconds",
   help: "Duration of HTTP requests in seconds",
   labelNames: ["method", "route", "status"],
-  buckets: [0.1, 0.5, 1, 1.5, 2, 5], // Buckets for request duration (seconds)
+  buckets: [0.1, 0.5, 1, 1.5, 2, 5], // 'buckets' define the time ranges (in seconds) for grouping request durations.
 });
 
-// Middleware to track request metrics
+// Custom Express middleware to intercept all requests and record metrics.
+// This middleware must be defined before the routes to ensure it runs for every request.
 app.use((req, res, next) => {
+  // Start a timer for the request duration histogram.
   const end = httpRequestDurationHistogram.startTimer();
 
+  // Use the 'finish' event on the response object, which is fired when the response is sent.
   res.on("finish", () => {
+    // Determine the route path. `req.route.path` provides the matched pattern (e.g., /products/:id).
+    // If no route is matched, it falls back to the raw URL path.
     const route = req.route ? req.route.path : req.path; // Route'u al
 
+    // Increment the request counter with the appropriate labels.
     httpRequestCounter.inc({
       method: req.method,
       route: route,
       status: res.statusCode,
     });
 
+    // End the timer and record the duration for the corresponding route and method.
     end({ method: req.method, route: route });
   });
 
+  // Pass control to the next middleware or route handler in the chain.
   next();
 });
 
+// --- Data Model and In-Memory Storage ---
+
+// Defines the data structure for a Product object using a TypeScript interface for type safety.
 export interface Product {
   id: string;
   name: string;
@@ -66,7 +97,8 @@ export interface Product {
   updatedAt: Date;
 }
 
-// Sample data for products
+// An array of sample products to pre-populate the application on startup.
+// This is useful for demonstration and testing purposes.
 export let sampleProducts: Product[] = [
   {
     id: uuidv4(),
@@ -132,9 +164,17 @@ export let sampleProducts: Product[] = [
   },
 ];
 
-export let products: Product[] = [...sampleProducts]; // Array to store products in memory
+// This array serves as our in-memory "database". In a real application, this would be
+// replaced with a connection to a persistent database like PostgreSQL or MongoDB.
+// It's exported so our unit tests can access and manipulate it.
+export let products: Product[] = [...sampleProducts];
 
-// Handler for creating a new product (POST /products)
+// --- Route Handlers (Business Logic) ---
+/**
+ * Handles the creation of a new product.
+ * Expects product data in the request body.
+ * Validates the input and adds the new product to the in-memory array.
+ */
 export const createProductHandler: RequestHandler = (req, res) => {
   try {
     const {
@@ -344,16 +384,17 @@ export const deleteProductHandler: RequestHandler = (req, res) => {
   }
 };
 
-// Root endpoint
+// --- Route Definitions ---
+// A simple root endpoint to confirm the service is running.
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello World! Product Service is running.");
 });
-
+// A simple health check or debug endpoint.
 app.get("/ping", (req, res) => {
-  res.status(200).send("Pong!");
+  res.status(200).send("Ping!");
 });
 
-// Endpoint for scraping Prometheus metrics
+// The endpoint that Prometheus will scrape to collect our custom and default metrics.
 app.get("/metrics", async (req, res) => {
   try {
     res.set("Content-Type", client.register.contentType);
@@ -364,13 +405,17 @@ app.get("/metrics", async (req, res) => {
   }
 });
 
-// Assign handlers to routes
+// Assigning the handler functions to the specific API routes and HTTP methods.
 app.post("/products", createProductHandler);
 app.get("/products", listProductsHandler);
 app.get("/products/:id", getProductByIdHandler);
 app.put("/products/:id", updateProductHandler);
 app.delete("/products/:id", deleteProductHandler);
 
+// --- Server Initialization ---
+
+// Conditionally start the server. This prevents the server from starting automatically
+// when the file is imported by Jest during testing.
 if (process.env.NODE_ENV !== "test") {
   app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
