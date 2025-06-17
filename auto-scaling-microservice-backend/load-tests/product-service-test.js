@@ -17,7 +17,7 @@ export const options = {
 };
 
 export default function () {
-  const productServiceUrl = "http://127.0.0.1:51224/products"; // minikube service product-service --url
+  const productServiceUrl = "http://127.0.0.1:51717/products"; // minikube service product-service --url
 
   const res = http.get(productServiceUrl);
 
