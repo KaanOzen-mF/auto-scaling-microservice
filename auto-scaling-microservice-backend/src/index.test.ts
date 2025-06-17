@@ -1,55 +1,75 @@
+// Import Request and Response types from Express to be used in mock objects.
 import { Request, Response } from "express";
+
+// Import the handlers and other necessary components from our main application file (index.ts).
 import {
   createProductHandler,
-  products, // products dizisini testler için import ediyoruz
-  Product, // Product arayüzünü import ediyoruz
+  products, // The in-memory array used as a database, imported for state verification and reset.
+  Product, // The TypeScript interface for a Product, used for type safety in tests.
   listProductsHandler,
   getProductByIdHandler,
   updateProductHandler,
   deleteProductHandler,
-} from "./index"; // index.ts'ten export edilenleri alıyoruz
-import { v4 as uuid } from "uuid"; // ID üretimi için
+} from "./index";
 
+// Import the uuid library to generate unique IDs for test data.
+import { v4 as uuid } from "uuid";
+
+// The main test suite for all handlers related to the Product API.
 describe("Product API Handlers", () => {
-  // beforeEach içinde kullanılacak ortak mock nesneleri
-  let mockRequest: Partial<Request>;
-  let mockResponse: Partial<Response>;
-  let responseJsonPayload: any; // res.json() ile gönderilen payload'ı yakalamak için
+  // Common mock objects to be used across multiple tests within this suite.
+  let mockRequest: Partial<Request>; // A partial mock of the Express Request object.
+  let mockResponse: Partial<Response>; // A partial mock of the Express Response object.
+  let responseJsonPayload: any; // A variable to capture the payload sent via res.json().
 
-  // --- createProductHandler Testleri ---
+  // Test suite for the createProductHandler function.
   describe("createProductHandler", () => {
+    // A setup function that runs before each test case ('it' block) in this suite.
     beforeEach(() => {
-      products.length = 0; // Her testten önce products dizisini sıfırla
+      // Reset the state: Clear the in-memory products array to ensure tests are isolated.
+      products.length = 0;
+      // Initialize a fresh mock request object for each test.
       mockRequest = { body: {} };
-      responseJsonPayload = {}; // Payload yakalayıcıyı sıfırla
+      // Reset the payload catcher.
+      responseJsonPayload = {};
+      // Initialize a fresh mock response object for each test.
       mockResponse = {
+        // Mock the .status() method. jest.fn() creates a mock function.
+        // .mockReturnThis() allows chaining, so we can call .json() after .status().
         status: jest.fn().mockReturnThis(),
+        // Mock the .json() method.
+        // .mockImplementation() defines what the mock function does when called.
+        // Here, it captures the payload passed to it so we can assert against it later.
         json: jest.fn().mockImplementation((payload) => {
           responseJsonPayload = payload;
         }),
       };
     });
 
+    // Test case for the "happy path": creating a product with all valid fields.
     it("should create a new product with all fields (including mandatory imageUrl) and return 201", () => {
+      // Arrange: Set up the mock request body with all necessary and optional data.
       mockRequest.body = {
         name: "Super Laptop Pro",
         description: "Top-tier laptop for professionals",
         detailedDescription:
-          "This laptop features an M3 Max chip and 32GB RAM.", // İsteğe bağlı
+          "This laptop features an M3 Max chip and 32GB RAM.", // Optional field
         price: 2499.99,
         stockQuantity: 15,
         category: "Electronics",
-        imageUrl: "https://example.com/super-laptop-pro.jpg", // Zorunlu
+        imageUrl: "https://example.com/super-laptop-pro.jpg", // Mandatory field
       };
 
+      // Act: Call the handler function with the mocked request, response, and a mock 'next' function.
       createProductHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
 
-      expect(mockResponse.status).toHaveBeenCalledWith(201);
-      expect(responseJsonPayload.id).toBeDefined();
+      // Assert: Verify that the outcomes are as expected.
+      expect(mockResponse.status).toHaveBeenCalledWith(201); // Check if the HTTP status was set to 201 (Created).
+      expect(responseJsonPayload.id).toBeDefined(); // The new product should have a server-generated ID.
       expect(responseJsonPayload.name).toBe(mockRequest.body.name);
       expect(responseJsonPayload.description).toBe(
         mockRequest.body.description
@@ -66,72 +86,86 @@ describe("Product API Handlers", () => {
       expect(responseJsonPayload.createdAt).toBeDefined();
       expect(responseJsonPayload.updatedAt).toBeDefined();
 
+      // Assert the side effect: the product should be added to the in-memory array.
       expect(products.length).toBe(1);
       expect(products[0].name).toBe(mockRequest.body.name);
       expect(products[0].imageUrl).toBe(mockRequest.body.imageUrl);
     });
 
+    // Test case: creating a product where optional fields are omitted.
     it("should create a product if optional detailedDescription is missing but mandatory imageUrl is present, and return 201", () => {
+      // Arrange: provide only the mandatory fields.
       mockRequest.body = {
         name: "Standard Laptop",
         description: "Reliable laptop for daily use",
-        // detailedDescription gönderilmiyor
+        // 'detailedDescription' is omitted.
         price: 799.99,
         stockQuantity: 30,
         category: "Electronics",
-        imageUrl: "https://example.com/standard-laptop.jpg", // Zorunlu
+        imageUrl: "https://example.com/standard-laptop.jpg",
       };
 
+      // Act
       createProductHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
 
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(201);
       expect(responseJsonPayload.name).toBe(mockRequest.body.name);
       expect(responseJsonPayload.imageUrl).toBe(mockRequest.body.imageUrl);
-      expect(responseJsonPayload.detailedDescription).toBeUndefined();
+      expect(responseJsonPayload.detailedDescription).toBeUndefined(); // Verify the optional field is undefined.
       expect(products.length).toBe(1);
       expect(products[0].detailedDescription).toBeUndefined();
     });
 
+    // Test case: request is missing a mandatory field (imageUrl).
     it("should return 400 if mandatory imageUrl is missing", () => {
+      // Arrange: create a request body without the 'imageUrl' field.
       mockRequest.body = {
         name: "Product Without Image",
         description: "This product is missing its image URL",
         price: 50.0,
         stockQuantity: 5,
         category: "Testing",
-        // imageUrl eksik
       };
+      // Act
       createProductHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      // Hata mesajınızın güncellenmiş halini buraya yazın (imageUrl'ı içermeli)
+
+      // Assert
+      expect(mockResponse.status).toHaveBeenCalledWith(400); // Expect a 'Bad Request' status.
+      // Assert that the error message correctly identifies the missing fields.
       expect(responseJsonPayload.message).toBe(
         "Please provide all required fields: name, description, price, stockQuantity, category, imageUrl"
       );
-      expect(products.length).toBe(0);
+      expect(products.length).toBe(0); // No product should have been added.
     });
 
+    // Test case: request is missing another mandatory field (name).
     it("should return 400 if other required fields (e.g., name) are missing", () => {
+      // Arrange
       mockRequest.body = {
-        // name eksik
+        // 'name' field is missing.
         description: "A product without a name",
         price: 9.99,
         stockQuantity: 10,
         category: "Incomplete",
         imageUrl: "https://example.com/incomplete.jpg",
       };
+      // Act
       createProductHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
+
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(responseJsonPayload.message).toBe(
         "Please provide all required fields: name, description, price, stockQuantity, category, imageUrl"
@@ -139,20 +173,25 @@ describe("Product API Handlers", () => {
       expect(products.length).toBe(0);
     });
 
+    // Test case: request has data with an incorrect type (price as string).
     it("should return 400 if price is not a number", () => {
+      // Arrange
       mockRequest.body = {
         name: "Invalid Price Product",
         description: "Testing invalid price",
-        price: "not-a-price",
+        price: "not-a-price", // Invalid type for price.
         stockQuantity: 10,
         category: "ValidationTest",
         imageUrl: "https://example.com/invalid-price.jpg",
       };
+      // Act
       createProductHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
+
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(responseJsonPayload.message).toBe(
         "Fields price and stockQuantity must be numbers."
@@ -161,9 +200,9 @@ describe("Product API Handlers", () => {
     });
   });
 
-  // --- listProductsHandler Testleri ---
+  // --- Tests for listProductsHandler ---
   describe("listProductsHandler", () => {
-    // Örnek ürünler (imageUrl zorunlu, detailedDescription isteğe bağlı)
+    // Define sample product data to be used in these tests.
     const sampleProductFull: Product = {
       id: uuid(),
       name: "Full Product",
@@ -184,10 +223,11 @@ describe("Product API Handlers", () => {
       stockQuantity: 50,
       category: "Cat1",
       imageUrl: "https://example.com/mandatory.jpg",
-      /* detailedDescription yok */ createdAt: new Date(),
+      createdAt: new Date(),
       updatedAt: new Date(),
     };
 
+    // Setup runs before each test in this suite.
     beforeEach(() => {
       products.length = 0;
       mockRequest = { query: {} };
@@ -199,18 +239,22 @@ describe("Product API Handlers", () => {
         }),
       };
     });
+    // Teardown runs after each test to ensure a clean state for the next suite.
     afterEach(() => {
       products.length = 0;
     });
 
+    // Test case: verifies the handler returns products with both mandatory and optional fields correctly.
     it("should return products including mandatory imageUrl and optional detailedDescription", () => {
+      // Arrange: Add products with and without optional fields to the array.
       products.push(sampleProductFull, sampleProductMandatoryOnly);
+      // Act
       listProductsHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
-
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(responseJsonPayload.data.length).toBe(2);
       const p1 = responseJsonPayload.data.find(
@@ -227,23 +271,28 @@ describe("Product API Handlers", () => {
       expect(p2.imageUrl).toBe(sampleProductMandatoryOnly.imageUrl);
       expect(p2.detailedDescription).toBeUndefined();
     });
-    // ... (Diğer listProductsHandler testleri (boş liste, sayfalama, geçersiz parametreler) büyük ölçüde aynı kalabilir,
-    // sadece `products.push` ile eklediğiniz örnek ürünlerin yeni Product arayüzüne uygun olduğundan emin olun.)
+
+    // Test case: verifies that an empty array and correct pagination info are returned when there are no products.
     it("should return an empty list and correct pagination when no products exist", () => {
+      // Arrange: products array is already empty from beforeEach.
+      // Act
       listProductsHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(responseJsonPayload.data).toEqual([]);
+      expect(responseJsonPayload.data).toEqual([]); // Expect an empty data array.
       expect(responseJsonPayload.pagination.totalItems).toBe(0);
       expect(responseJsonPayload.pagination.totalPages).toBe(0);
     });
+    // Note: Other pagination tests for listProductsHandler can be added here.
   });
 
-  // --- getProductByIdHandler Testleri ---
+  // --- Tests for getProductByIdHandler ---
   describe("getProductByIdHandler", () => {
+    // Arrange: Create a sample product to be used for testing.
     const testProductWithImage: Product = {
       id: uuid(),
       name: "Specific Product",
@@ -259,7 +308,7 @@ describe("Product API Handlers", () => {
 
     beforeEach(() => {
       products.length = 0;
-      products.push(testProductWithImage);
+      products.push(testProductWithImage); // Add the test product to the in-memory array.
       mockRequest = { params: {} };
       responseJsonPayload = {};
       mockResponse = {
@@ -273,25 +322,34 @@ describe("Product API Handlers", () => {
       products.length = 0;
     });
 
+    // Test case: verifies that a product is returned successfully when a valid ID is provided.
     it("should return 200 and the product (with imageUrl) if found", () => {
+      // Arrange: Set the 'id' parameter in the mock request.
       mockRequest.params = { id: testProductWithImage.id };
+      // Act
       getProductByIdHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(200);
+      // Use .toEqual to compare the entire object.
       expect(responseJsonPayload).toEqual(testProductWithImage);
     });
 
+    // Test case: verifies that a 404 Not Found is returned for a non-existent ID.
     it("should return 404 if product not found", () => {
+      // Arrange
       const nonExistentId = uuid();
       mockRequest.params = { id: nonExistentId };
+      // Act
       getProductByIdHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(404);
       expect(responseJsonPayload.message).toBe(
         `Product with id '${nonExistentId}' not found.`
@@ -299,7 +357,7 @@ describe("Product API Handlers", () => {
     });
   });
 
-  // --- updateProductHandler Testleri ---
+  // --- Tests for updateProductHandler ---
   describe("updateProductHandler", () => {
     let initialProduct: Product;
 
@@ -331,7 +389,9 @@ describe("Product API Handlers", () => {
       products.length = 0;
     });
 
+    // Test case: verifies a successful update with a full payload.
     it("should update an existing product including mandatory imageUrl and return 200", () => {
+      // Arrange
       mockRequest.params = { id: initialProduct.id };
       mockRequest.body = {
         name: "Updated Super Product",
@@ -340,16 +400,17 @@ describe("Product API Handlers", () => {
         price: 65.5,
         stockQuantity: 35,
         category: "Updated Electronics",
-        imageUrl: "https://example.com/updated-super.jpg", // Zorunlu
+        imageUrl: "https://example.com/updated-super.jpg",
       };
+      // Act
       updateProductHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
-
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(responseJsonPayload.id).toBe(initialProduct.id);
+      expect(responseJsonPayload.id).toBe(initialProduct.id); // ID should not change.
       expect(responseJsonPayload.name).toBe(mockRequest.body.name);
       expect(responseJsonPayload.imageUrl).toBe(mockRequest.body.imageUrl);
       expect(responseJsonPayload.detailedDescription).toBe(
@@ -357,44 +418,44 @@ describe("Product API Handlers", () => {
       );
       expect(new Date(responseJsonPayload.updatedAt).getTime()).toBeGreaterThan(
         initialProduct.updatedAt.getTime()
-      );
+      ); // 'updatedAt' should be newer.
       const updatedProductInArray = products.find(
         (p) => p.id === initialProduct.id
       );
       expect(updatedProductInArray?.imageUrl).toBe(mockRequest.body.imageUrl);
     });
 
+    // Test case: verifies that a 400 error is returned if the mandatory imageUrl is missing.
     it("should return 400 if mandatory imageUrl is missing in update request", () => {
+      // Arrange
       mockRequest.params = { id: initialProduct.id };
       mockRequest.body = {
+        // 'imageUrl' is missing from this update payload.
         name: "Update Without Image",
         description: "This update is missing the image URL",
         price: 70.0,
         stockQuantity: 25,
         category: "Testing Update",
-        // imageUrl eksik
       };
+      // Act
       updateProductHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(400);
-      // Hata mesajınızın güncellenmiş halini buraya yazın (imageUrl'ı içermeli)
       expect(responseJsonPayload.message).toBe(
         "Please provide all required fields for update: name, description, price, stockQuantity, category, imageUrl"
       );
     });
-    // ... (updateProductHandler için diğer 404 ve 400 (diğer zorunlu alanlar için) testleri benzer şekilde kalabilir,
-    // sadece mockRequest.body'lerinin imageUrl içerdiğinden emin olun eğer valid bir istek simüle ediliyorsa.)
   });
 
-  // --- deleteProductHandler Testleri (Değişiklik Gerekmiyor) ---
+  // --- Tests for deleteProductHandler ---
   describe("deleteProductHandler", () => {
-    // Bu testler ürünün içeriğiyle değil varlığıyla ilgilendiği için
-    // imageUrl'ın zorunlu olması bu testleri doğrudan etkilemez.
-    // Sadece beforeEach'te oluşturulan productToDelete'in Product arayüzüne
-    // (yani zorunlu imageUrl alanına) sahip olduğundan emin olun.
+    // Note: These tests are not directly affected by the new fields, as they deal with
+    // the existence of the product, not its content. We just need to ensure the test
+    // data object ('productToDelete') is valid according to the Product interface.
     let productToDelete: Product;
     beforeEach(() => {
       products.length = 0;
@@ -405,52 +466,61 @@ describe("Product API Handlers", () => {
         price: 10,
         stockQuantity: 1,
         category: "ToDelete",
-        imageUrl: "https://example.com/to-delete.jpg", // Zorunlu alan eklendi
+        imageUrl: "https://example.com/to-delete.jpg", // Mandatory field added
         createdAt: new Date(),
         updatedAt: new Date(),
       };
       products.push(productToDelete);
       mockRequest = { params: {} };
-      responseJsonPayload = {}; // Reset payload catcher
+      responseJsonPayload = {};
       mockResponse = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn().mockImplementation((payload) => {
           responseJsonPayload = payload;
         }),
-        send: jest.fn().mockReturnThis(),
+        send: jest.fn().mockReturnThis(), // Mock 'send' for the 204 No Content response.
       };
     });
     afterEach(() => {
       products.length = 0;
     });
 
+    // Test case: verifies a successful deletion.
     it("should delete an existing product and return 204 No Content", () => {
+      // Arrange
       mockRequest.params = { id: productToDelete.id };
       const initialProductCount = products.length;
+      // Act
       deleteProductHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(204);
-      expect(mockResponse.send).toHaveBeenCalledTimes(1);
-      expect(products.length).toBe(initialProductCount - 1);
+      expect(mockResponse.send).toHaveBeenCalledTimes(1); // .send() should be called for 204.
+      expect(mockResponse.json).not.toHaveBeenCalled(); // .json() should not be called.
+      expect(products.length).toBe(initialProductCount - 1); // Verify removal from array.
       expect(products.find((p) => p.id === productToDelete.id)).toBeUndefined();
     });
 
+    // Test case: verifies a 404 is returned if trying to delete a non-existent product.
     it("should return 404 if product to delete is not found", () => {
+      // Arrange
       const nonExistentId = uuid();
       mockRequest.params = { id: nonExistentId };
+      // Act
       deleteProductHandler(
         mockRequest as Request,
         mockResponse as Response,
         jest.fn()
       );
+      // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(404);
       expect(responseJsonPayload.message).toBe(
         `Product with id '${nonExistentId}' not found, cannot delete.`
       );
-      expect(products.length).toBe(1);
+      expect(products.length).toBe(1); // The array should be unchanged.
     });
   });
 });
