@@ -1,18 +1,54 @@
+# Specifies the custom API version defined by the Prometheus Operator for its resources.
+# This tells Kubernetes that this object is managed by the CoreOS monitoring components.
 apiVersion: monitoring.coreos.com/v1
+
+# Defines the type of custom resource. A ServiceMonitor declaratively specifies how a group
+# of Kubernetes Services should be monitored by Prometheus.
 kind: ServiceMonitor
+
+# Contains metadata for the ServiceMonitor object itself.
 metadata:
+  # A unique name for this ServiceMonitor resource within its namespace.
   name: product-service-sm
+
+  # Labels attached to this ServiceMonitor resource.
   labels:
+    # This is a critical label. The 'Prometheus' custom resource (installed by our Helm chart)
+    # is configured to automatically discover and use any ServiceMonitor that has this exact label.
+    # 'prometheus-stack' is the release name of our Helm installation.
     release: prometheus-stack
+
+  # The namespace where this ServiceMonitor resource will be created. It must be a namespace
+  # that the Prometheus Operator is configured to watch (typically its own namespace, 'monitoring').
   namespace: monitoring
+
+# The 'spec' (specification) describes the rules for discovering and scraping targets.
 spec:
+  # This selector tells the ServiceMonitor which namespace(s) to search for target Services.
   namespaceSelector:
+    # 'matchNames' specifies a list of exact namespace names to select from.
     matchNames:
+      # We are explicitly telling this ServiceMonitor (which lives in 'monitoring')
+      # to look for Services in the 'default' namespace, where our application's Service is deployed.
       - default
+
+  # This selector defines which Service(s) to monitor within the selected namespace(s).
   selector:
+    # 'matchLabels' will find any Service that has all of the specified key-value pairs as labels.
     matchLabels:
+      # It will target any Service that has the label 'app: product-service'.
+      # This must match the label in the 'metadata.labels' section of our product-service's Service YAML.
       app: product-service
+
+  # 'endpoints' defines how the discovered Service(s) should be scraped for metrics.
+  # A Service can have multiple ports; this section specifies which one to use.
   endpoints:
+    # Defines a single scrape endpoint configuration.
+    # The named port on the target Service that exposes the metrics.
+    # This MUST exactly match the 'name' field of a port in the target Service's YAML definition.
     - port: http
+      # The URL path on the target Service where the metrics are exposed. Defaults to /metrics if not specified.
       path: /metrics
+      # How frequently Prometheus should scrape this endpoint. This overrides the global scrape interval
+      # for this specific target.
       interval: 15s
