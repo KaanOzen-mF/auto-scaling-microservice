@@ -1,15 +1,48 @@
+# Specifies the version of the Kubernetes API to use for creating this object.
+# 'v1' is the core API group, which includes fundamental objects like Service, Pod, etc.
 apiVersion: v1
+
+# Defines the type of Kubernetes resource to be created.
 kind: Service
+
+# Contains metadata that helps uniquely identify the Service object, such as its name and labels.
 metadata:
+  # The unique name for this Service within its namespace. This name is used by other
+  # Kubernetes resources (like Ingress) and for DNS resolution within the cluster.
   name: product-service
+
+  # Labels are key/value pairs attached to objects. They are used for organization and selection.
   labels:
+    # This label helps in identifying and selecting this Service resource itself.
+    # It's a common practice to label resources with the name of the application they belong to.
     app: product-service
+    tier: backend
+
+# The 'spec' (specification) section describes the desired state and behavior of the Service.
 spec:
+  # 'type' defines how the Service is exposed. 'NodePort' exposes the Service on each Node's IP
+  # at a static port (the NodePort). This makes the Service accessible from outside the cluster,
+  # which is very useful for local development environments like Minikube.
   type: NodePort
   selector:
+    # This Service will forward traffic to any Pod that has the label 'app: product-service'.
+    # This value MUST exactly match the labels set on the Pods in your 'deployment.yaml' template.
     app: product-service
+
+  # 'ports' is a list of port mappings for this Service.
   ports:
-    - protocol: TCP
+    # A single port mapping definition.
+    - protocol: TCP # The IP protocol for this port. Most services use TCP.
+
+      # The port number on which this Service is exposed *inside* the Kubernetes cluster's virtual network.
+      # Other services within the cluster can communicate with this service on this port.
       port: 3000
+
+      # The port on the target Pods that the incoming traffic will be forwarded to.
+      # This should match the 'containerPort' that your application's container is listening on.
       targetPort: 3000
+
+      # A name for this port. Naming a port is good practice, especially for multi-port services.
+      # It's critically important here because our Prometheus 'ServiceMonitor' uses this name ('http')
+      # to identify which port to scrape for metrics.
       name: http
