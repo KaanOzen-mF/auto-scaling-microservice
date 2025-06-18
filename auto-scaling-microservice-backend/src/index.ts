@@ -88,7 +88,7 @@ export interface Product {
   id: string;
   name: string;
   description: string;
-  detailedDescription?: string; // Optional field
+  detailedDescription?: string;
   imageUrl: string;
   price: number;
   stockQuantity: number;
