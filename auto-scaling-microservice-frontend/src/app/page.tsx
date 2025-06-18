@@ -35,7 +35,7 @@ export default function Home() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  const PRODUCT_SERVICE_API_URL = "http://127.0.0.1:51674/products";
+  const PRODUCT_SERVICE_API_URL = "http://127.0.0.1:52013/products";
 
   useEffect(() => {
     async function fetchProducts() {
@@ -115,9 +115,10 @@ export default function Home() {
 
   return (
     <main className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold text-center mb-8 text-blue-600">
-        Products
-      </h1>
+      <div className="flex flex-row items-center mb-8 justify-between text-3xl font-bold text-center text-blue-600 w-2xl object-center mx-auto">
+        <Link href={"/"}>Products</Link>
+        <Link href={"/demo"}>Demo Codes</Link>
+      </div>
 
       {loading && (
         <p className="text-center text-gray-500">Products loading..</p>
