@@ -20,11 +20,11 @@ export const options = {
   },
 };
 
-const BASE_URL = "http://127.0.0.1:51717"; // `minikube service product-service --url`
+const BASE_URL = "http://127.0.0.1:52013"; // `minikube service product-service --url`
 
 const sampleProductIds = [
-  "ddb8d215-1106-4ce8-aaf6-996c479abe70", // laptop
-  "f5f93fa5-33a0-446f-bffb-a0d8b4fb8adb", // wireless mouse
+  "67af384a-9e13-45db-985d-977548381271", // laptop
+  "054f7a08-4a4d-4bdc-a6d0-3de638debbd7", // wireless mouse
 ];
 
 // --- Test Scenarios ---
