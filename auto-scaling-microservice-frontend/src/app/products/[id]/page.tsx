@@ -48,7 +48,8 @@ export default function ProductEditPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const PRODUCT_SERVICE_BASE_API_URL = "http://127.0.0.1:51674";
+  //todo("Change this URL when deploying to production");
+  const PRODUCT_SERVICE_BASE_API_URL = "http://127.0.0.1:52013";
 
   useEffect(() => {
     if (id && PRODUCT_SERVICE_BASE_API_URL.includes(":")) {
