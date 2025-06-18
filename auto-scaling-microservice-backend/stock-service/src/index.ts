@@ -18,6 +18,7 @@ interface StockData {
   [productId: string]: number;
 }
 
+// Change every time you start the service to simulate stock changes
 export const stockLevels: StockData = {
   "71cb9bea-6e6e-42d5-a191-e28ad09b1e7b": 25, // Laptop Pro 15 inch
   "1fa7b950-5b2f-4742-a995-17c99022dc12": 150, // Wireless Mouse Ergo
