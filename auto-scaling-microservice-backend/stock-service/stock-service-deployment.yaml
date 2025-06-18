@@ -1,22 +1,67 @@
+# Specifies the version of the Kubernetes API to use. 'apps/v1' is the stable
+# API version for workload resources like Deployment.
 apiVersion: apps/v1
+
+# Defines the type of Kubernetes resource being created.
 kind: Deployment
+
+# Contains metadata that uniquely identifies the Deployment object.
 metadata:
+  # The unique name for this Deployment within its namespace.
   name: stock-service-deployment
+  # Labels attached to the Deployment resource itself for organization and selection.
   labels:
     app: stock-service
+
+# 'spec' (specification) describes the desired state for this Deployment.
 spec:
+  # 'replicas' specifies the desired number of identical Pods to run.
+  # For now, we are starting with 1 replica of the stock-service.
   replicas: 1
+
+  # 'selector' defines how the Deployment finds which Pods to manage.
   selector:
+    # 'matchLabels' specifies that this Deployment manages any Pod with all the listed labels.
     matchLabels:
+      # This MUST exactly match the labels defined in the Pod template below.
       app: stock-service
+
+  # 'template' is the blueprint for the Pods that this Deployment will create.
   template:
+    # 'metadata' for the Pods themselves.
     metadata:
+      # Labels to be applied to each Pod created by this Deployment.
+      # The 'spec.selector.matchLabels' above uses this label to identify the Pods.
       labels:
         app: stock-service
+
+    # 'spec' for the Pods, describing the desired state of each Pod.
     spec:
+      # 'containers' is a list of containers to run inside each Pod.
       containers:
-        - name: stock-service-container
+        - # A single container definition for our stock service.
+          name: stock-service-container # The name of the container within the Pod.
+
+          # The Docker image to use for this container. This should be built
+          # in Minikube's Docker environment to be found locally.
           image: stock-service:latest
+
+          # 'imagePullPolicy' defines when Kubernetes should pull the image.
+          # 'IfNotPresent' means the image is pulled only if it's not already on the node.
           imagePullPolicy: IfNotPresent
+
+          # Lists the network ports to expose from the container.
           ports:
+            # The port number inside the container that the stock-service app listens on.
             - containerPort: 3001
+
+          # --- Recommended Addition: Resource Requests and Limits ---
+          # It's a best practice to define resource requests and limits for containers.
+          # This helps Kubernetes schedule Pods efficiently and is required for HPA to work.
+          # You can uncomment and adjust these values as needed for the stock-service.
+          # resources:
+          #   requests:
+          #     cpu: "50m"      # Request 0.05 CPU cores
+          #     memory: "64Mi"   # Request 64 Mebibytes of memory
+          #   limits:
+          #     memory: "128Mi" # Limit memory usage to 128 Mebibytes
