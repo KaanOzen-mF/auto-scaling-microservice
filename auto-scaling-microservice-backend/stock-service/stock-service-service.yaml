@@ -1,14 +1,43 @@
+# Specifies the version of the Kubernetes API to use for creating this object.
+# 'v1' is the core API group for fundamental resources like Service.
 apiVersion: v1
+
+# Defines the type of Kubernetes resource to be created, which is a Service.
 kind: Service
+
+# Contains metadata that uniquely identifies the Service object.
 metadata:
+  # The unique name for this Service within its namespace (default).
   name: stock-service-svc
+  # Labels attached to this Service object for organization and selection.
   labels:
     app: stock-service
+
+# 'spec' (specification) describes the desired state and behavior of the Service.
 spec:
+  # 'type: NodePort' exposes the Service on a static port on each Node's IP.
+  # This provides a way to access the service from outside the Kubernetes cluster,
+  # which is useful for Minikube.
   type: NodePort
+
+  # This selector identifies the group of Pods that this Service will target.
+  # The Service will forward traffic to any Pod with a label that matches this selector.
   selector:
+    # It looks for Pods with the label 'app: stock-service'.
+    # This MUST exactly match the label set on the Pods in the stock-service-deployment.yaml.
     app: stock-service
+
+  # Defines the service's port mappings.
   ports:
-    - protocol: TCP
+    - protocol: TCP # The IP protocol for this port.
+
+      # The port on which this Service is exposed inside the cluster's network.
       port: 3001
+
+      # The port on the target Pods/containers that traffic will be forwarded to.
+      # This should match the 'containerPort' for the stock-service container.
       targetPort: 3001
+
+      # IMPORTANT: Adding a name to the port. This is required by Prometheus's
+      # ServiceMonitor to identify which port to scrape for metrics in the future.
+      name: http
